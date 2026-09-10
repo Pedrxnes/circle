@@ -191,13 +191,20 @@ function App(): JSX.Element {
 
   return (
     <div className="orb-root">
+      {/* Never give anything in this window a `title`: the native tooltip is an
+          OS-drawn window, and because the orb window is click-through and never
+          focused it never receives the mouse-out or activation change that
+          dismisses it, so the tooltip stays on screen — looking like a stray
+          title bar above the orb — until the window itself is destroyed.
+          `aria-label` names the orb for screen readers without a tooltip. */}
       <div
         className={`orb${dragging ? " orb-dragging" : ""}${open ? " orb-open" : ""}`}
         style={orbStyle}
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
         onPointerCancel={() => { void endDrag(); }}
-        title={text.appName}
+        role="button"
+        aria-label={text.appName}
       >
         <Ring
           size={layout.orbDiameter}
