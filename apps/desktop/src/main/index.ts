@@ -143,7 +143,16 @@ function createSettingsWindow(): BrowserWindow {
   window.removeMenu();
   void window.loadFile(join(__dirname, "../renderer/settings.html"));
   window.once("ready-to-show", () => window.show());
-  window.on("closed", () => { settingsWindow = undefined; });
+  window.on("closed", () => {
+    settingsWindow = undefined;
+    // Closing a framed window over the transparent, layered orb window can
+    // leave a stale composited region on Windows until something forces a
+    // repaint, so nudge the orb's bounds to make DWM redraw it.
+    if (orbWindow && !orbWindow.isDestroyed()) {
+      const bounds = orbWindow.getBounds();
+      orbWindow.setBounds(bounds);
+    }
+  });
   return window;
 }
 
