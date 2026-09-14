@@ -39,6 +39,12 @@ export interface Strings {
   sourceWsl: string;
   sourceAuto: string;
   noHistoryYet: string;
+  burnRateTitle: string;
+  burnRateHint: string;
+  usageSteady: string;
+  exhaustsNow: string;
+  exhaustsIn: string;
+  exhaustsOn: string;
 
   floatingOrb: string;
   floatingOrbHint: string;
@@ -144,6 +150,12 @@ const en: Strings = {
   sourceWsl: "WSL",
   sourceAuto: "Automatic",
   noHistoryYet: "History fills in as Circle keeps reading your usage.",
+  burnRateTitle: "At this pace",
+  burnRateHint: "Based on how fast you've been using each window recently.",
+  usageSteady: "On track — no window is projected to run out before it resets.",
+  exhaustsNow: "Already at the limit",
+  exhaustsIn: "runs out in",
+  exhaustsOn: "runs out around",
 
   floatingOrb: "Floating orb",
   floatingOrbHint: "The circle that stays on top of your desktop.",
@@ -249,6 +261,12 @@ const ptBR: Strings = {
   sourceWsl: "WSL",
   sourceAuto: "Automática",
   noHistoryYet: "O histórico é preenchido conforme o Circle lê seu uso.",
+  burnRateTitle: "No ritmo atual",
+  burnRateHint: "Baseado na velocidade recente de uso de cada janela.",
+  usageSteady: "Sob controle — nenhuma janela deve esgotar antes de renovar.",
+  exhaustsNow: "Já no limite",
+  exhaustsIn: "esgota em",
+  exhaustsOn: "esgota por volta de",
 
   floatingOrb: "Círculo flutuante",
   floatingOrbHint: "O círculo que fica sobre a sua área de trabalho.",

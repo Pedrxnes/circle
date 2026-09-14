@@ -80,6 +80,32 @@ export interface HistorySummary {
   samples: HistorySample[];
   peakSession: number;
   peakWeek: number;
+  /** Percentage points climbed per hour since the window's last observed reset, or null when the trend is too thin to trust. */
+  sessionRatePerHour: number | null;
+  weekRatePerHour: number | null;
+  /** ISO timestamp for when the current pace would hit 100%, or null when usage isn't climbing. */
+  projectedSessionExhaustion: string | null;
+  projectedWeekExhaustion: string | null;
+}
+
+export interface ExhaustionWarning {
+  key: "session" | "week";
+  etaIso: string;
+}
+
+/** Windows whose current burn rate would hit 100% before they naturally reset. */
+export function exhaustionWarnings(usage: Usage, history: HistorySummary): ExhaustionWarning[] {
+  const candidates: { key: "session" | "week"; etaIso: string | null }[] = [
+    { key: "session", etaIso: history.projectedSessionExhaustion },
+    { key: "week", etaIso: history.projectedWeekExhaustion }
+  ];
+  return candidates.flatMap(({ key, etaIso }) => {
+    if (!etaIso) return [];
+    const window = findWindow(usage, key);
+    if (!window) return [];
+    if (window.resetsAt && Date.parse(etaIso) >= Date.parse(window.resetsAt)) return [];
+    return [{ key, etaIso }];
+  });
 }
 
 export interface LoginItemStatus {

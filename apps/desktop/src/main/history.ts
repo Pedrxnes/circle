@@ -42,12 +42,59 @@ export class HistoryStore {
   summary(now = new Date()): HistorySummary {
     const samples = prune(this.load(), now);
     const week = samples.filter((sample) => Date.parse(sample.at) >= now.getTime() - 7 * 86_400_000);
+    const latest = week[week.length - 1];
+    const sessionRate = burnRatePerHour(week, "session");
+    const weekRate = burnRatePerHour(week, "week");
     return {
       samples: week,
       peakSession: week.reduce((peak, sample) => Math.max(peak, sample.session), 0),
-      peakWeek: week.reduce((peak, sample) => Math.max(peak, sample.week), 0)
+      peakWeek: week.reduce((peak, sample) => Math.max(peak, sample.week), 0),
+      sessionRatePerHour: sessionRate,
+      weekRatePerHour: weekRate,
+      projectedSessionExhaustion: latest ? projectExhaustion(sessionRate, latest.session, now) : null,
+      projectedWeekExhaustion: latest ? projectExhaustion(weekRate, latest.week, now) : null
     };
   }
+}
+
+const MIN_TREND_SAMPLES = 3;
+const MIN_TREND_SPAN_HOURS = 0.5;
+/** A drop bigger than noise means the window rolled over; the trend should not span across that. */
+const RESET_DROP_THRESHOLD = 1;
+
+/** Only the run since the last observed reset, so a rolling window's sawtooth doesn't flatten the slope. */
+export function samplesSinceLastReset(samples: HistorySample[], key: "session" | "week"): HistorySample[] {
+  let startIndex = 0;
+  for (let index = 1; index < samples.length; index++) {
+    const previous = samples[index - 1];
+    const current = samples[index];
+    if (previous && current && current[key] < previous[key] - RESET_DROP_THRESHOLD) startIndex = index;
+  }
+  return samples.slice(startIndex);
+}
+
+/** Percentage points climbed per hour, via least-squares over the current run, or null when the
+ * trend is too thin (few samples, short span, flat/falling) to extrapolate from. */
+export function burnRatePerHour(samples: HistorySample[], key: "session" | "week"): number | null {
+  const run = samplesSinceLastReset(samples, key);
+  if (run.length < MIN_TREND_SAMPLES) return null;
+  const firstAt = Date.parse(run[0]!.at);
+  const points = run.map((sample) => ({ hours: (Date.parse(sample.at) - firstAt) / 3_600_000, percent: sample[key] }));
+  const spanHours = points[points.length - 1]!.hours;
+  if (spanHours < MIN_TREND_SPAN_HOURS) return null;
+  const meanX = points.reduce((sum, point) => sum + point.hours, 0) / points.length;
+  const meanY = points.reduce((sum, point) => sum + point.percent, 0) / points.length;
+  const numerator = points.reduce((sum, point) => sum + (point.hours - meanX) * (point.percent - meanY), 0);
+  const denominator = points.reduce((sum, point) => sum + (point.hours - meanX) ** 2, 0);
+  return denominator === 0 ? null : numerator / denominator;
+}
+
+/** When the current pace hits 100%, or null when usage isn't climbing. */
+export function projectExhaustion(ratePerHour: number | null, currentPercent: number, now: Date): string | null {
+  if (ratePerHour === null || ratePerHour <= 0) return null;
+  if (currentPercent >= 100) return now.toISOString();
+  const hoursRemaining = (100 - currentPercent) / ratePerHour;
+  return new Date(now.getTime() + hoursRemaining * 3_600_000).toISOString();
 }
 
 function isSample(value: unknown): value is HistorySample {

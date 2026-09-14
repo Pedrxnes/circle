@@ -34,6 +34,25 @@ export function formatReset(resetsAt: string | null, language: Language): string
   return `${text.resetsOn} ${formatted}`;
 }
 
+/** "runs out in 2 h 15 min" while close, an absolute date once further out. */
+export function formatExhaustion(etaIso: string | null, language: Language): string {
+  if (!etaIso) return "";
+  const target = Date.parse(etaIso);
+  if (!Number.isFinite(target)) return "";
+  const text = strings(language);
+  const seconds = (target - Date.now()) / 1000;
+  if (seconds <= 60) return text.exhaustsNow;
+  if (seconds < 86_400) {
+    const totalMinutes = Math.floor(seconds / 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const span = hours > 0 ? (minutes > 0 ? `${hours} h ${minutes} min` : `${hours} h`) : `${Math.max(1, minutes)} min`;
+    return `${text.exhaustsIn} ${span}`;
+  }
+  const formatted = new Date(target).toLocaleDateString(localeFor(language), { weekday: "short", month: "short", day: "numeric" });
+  return `${text.exhaustsOn} ${formatted}`;
+}
+
 export function formatUpdated(updatedAt: string | null, language: Language): string {
   const text = strings(language);
   if (!updatedAt) return `${text.updated} ${text.never}`;

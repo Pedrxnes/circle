@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { prune } from "../main/history";
+import { burnRatePerHour, projectExhaustion, prune, samplesSinceLastReset } from "../main/history";
 import { HISTORY_MAX_SAMPLES } from "../shared/types";
 
 const now = new Date("2026-09-09T12:00:00Z");
@@ -25,4 +25,50 @@ test("prune caps the log so the file cannot grow without bound", () => {
     week: 1
   }));
   assert.equal(prune(samples, now).length, HISTORY_MAX_SAMPLES);
+});
+
+test("samplesSinceLastReset cuts off before a window rollover", () => {
+  const samples = [
+    { at: "2026-09-09T08:00:00Z", session: 80, week: 10 },
+    { at: "2026-09-09T09:00:00Z", session: 95, week: 12 },
+    { at: "2026-09-09T10:00:00Z", session: 5, week: 14 }, // session reset here
+    { at: "2026-09-09T11:00:00Z", session: 20, week: 16 }
+  ];
+  const run = samplesSinceLastReset(samples, "session");
+  assert.deepEqual(run.map((sample) => sample.session), [5, 20]);
+});
+
+test("burnRatePerHour reads percent-per-hour off a steady climb", () => {
+  const samples = [
+    { at: "2026-09-09T08:00:00Z", session: 10, week: 0 },
+    { at: "2026-09-09T09:00:00Z", session: 20, week: 0 },
+    { at: "2026-09-09T10:00:00Z", session: 30, week: 0 }
+  ];
+  assert.equal(burnRatePerHour(samples, "session"), 10);
+});
+
+test("burnRatePerHour returns null when there is too little data to trust a slope", () => {
+  assert.equal(burnRatePerHour([{ at: "2026-09-09T08:00:00Z", session: 10, week: 0 }], "session"), null);
+});
+
+test("burnRatePerHour can read a negative slope; projectExhaustion then reports no exhaustion", () => {
+  const declining = [
+    { at: "2026-09-09T08:00:00Z", session: 10, week: 0 },
+    { at: "2026-09-09T09:00:00Z", session: 10, week: 0 },
+    { at: "2026-09-09T10:00:00Z", session: 9.5, week: 0 }
+  ];
+  const rate = burnRatePerHour(declining, "session");
+  assert.ok(rate !== null && rate < 0);
+  assert.equal(projectExhaustion(rate, 9.5, now), null);
+});
+
+test("projectExhaustion extrapolates to 100% at the current rate", () => {
+  const eta = projectExhaustion(10, 50, now); // 10%/h, 50% left to go => 5h
+  assert.equal(eta, new Date(now.getTime() + 5 * 3_600_000).toISOString());
+});
+
+test("projectExhaustion is null without a positive rate, and immediate once already at the cap", () => {
+  assert.equal(projectExhaustion(null, 50, now), null);
+  assert.equal(projectExhaustion(-2, 50, now), null);
+  assert.equal(projectExhaustion(5, 100, now), now.toISOString());
 });

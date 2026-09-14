@@ -7,6 +7,7 @@ import {
   DEFAULT_SETTINGS,
   MIN_REFRESH_INTERVAL_SECONDS,
   ORB_DIAMETERS,
+  exhaustionWarnings,
   findWindow,
   isHexColor,
   ringColor,
@@ -16,7 +17,7 @@ import {
 import type { AppInfo, HistorySummary, Language, Settings, SourceInfo, Usage } from "../shared/types";
 import { Ring } from "./Ring";
 import { Row, Section, Segmented, Slider, Toggle } from "./controls";
-import { formatReset, formatUpdated, metricHint, metricLabel } from "./format";
+import { formatExhaustion, formatReset, formatUpdated, metricHint, metricLabel } from "./format";
 import { Sparkline } from "./Sparkline";
 import "./settings.css";
 
@@ -27,7 +28,15 @@ type Tab = (typeof TABS)[number];
 function App(): JSX.Element {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [usage, setUsage] = useState<Usage>(EMPTY_USAGE);
-  const [history, setHistory] = useState<HistorySummary>({ samples: [], peakSession: 0, peakWeek: 0 });
+  const [history, setHistory] = useState<HistorySummary>({
+    samples: [],
+    peakSession: 0,
+    peakWeek: 0,
+    sessionRatePerHour: null,
+    weekRatePerHour: null,
+    projectedSessionExhaustion: null,
+    projectedWeekExhaustion: null
+  });
   const [sources, setSources] = useState<SourceInfo | null>(null);
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [loginItem, setLoginItem] = useState({ available: false, enabled: false });
@@ -67,6 +76,7 @@ function App(): JSX.Element {
     }
   }, [reload]);
 
+  const warnings = exhaustionWarnings(usage, history);
   const percent = ringPercent(usage, settings.ringMetric);
   const colour = usage.state === "ok" ? ringColor(percent, settings.colorMode, settings.accentColor) : "#8a8f98";
 
@@ -149,6 +159,18 @@ function App(): JSX.Element {
                   />
                 : <p className="muted">{text.noHistoryYet}</p>}
             </Section>
+
+            {history.samples.length > 1 && (
+              <Section title={text.burnRateTitle} hint={text.burnRateHint}>
+                {warnings.length > 0
+                  ? warnings.map((warning) => (
+                      <p key={warning.key} className="body">
+                        <strong>{metricLabel(warning.key, settings.language)}:</strong> {formatExhaustion(warning.etaIso, settings.language)}
+                      </p>
+                    ))
+                  : <p className="muted">{text.usageSteady}</p>}
+              </Section>
+            )}
 
             <Section title={text.source}>
               <div className="row row-stacked">
