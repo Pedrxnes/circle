@@ -151,12 +151,7 @@ function App(): JSX.Element {
                 : undefined}
             >
               {history.samples.length > 1
-                ? <Sparkline
-                    samples={history.samples}
-                    accent={settings.accentColor}
-                    sessionLabel={metricLabel("session", settings.language)}
-                    weekLabel={metricLabel("week", settings.language)}
-                  />
+                ? <Sparkline samples={history.samples} accent={settings.accentColor} language={settings.language} />
                 : <p className="muted">{text.noHistoryYet}</p>}
             </Section>
 

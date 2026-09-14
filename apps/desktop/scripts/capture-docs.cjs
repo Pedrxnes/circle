@@ -77,6 +77,19 @@ async function captureOrb(window) {
   writeFileSync(join(OUT, "orb.png"), (await window.webContents.capturePage()).toPNG());
 }
 
+async function hoverChart(window) {
+  const box = await window.webContents.executeJavaScript(
+    `(() => { const p = document.querySelector(".chart-plot"); if (!p) return null; const r = p.getBoundingClientRect(); return { x: r.left, y: r.top, width: r.width, height: r.height }; })()`
+  );
+  if (!box) return;
+  window.webContents.sendInputEvent({
+    type: "mouseMove",
+    x: Math.round(box.x + box.width * 0.62),
+    y: Math.round(box.y + box.height * 0.5)
+  });
+  await wait(400);
+}
+
 async function captureSettings(window) {
   await window.loadFile(join(RENDERER, "settings.html"));
   window.showInactive();
@@ -93,6 +106,9 @@ async function captureSettings(window) {
     );
     window.setContentSize(SETTINGS_WIDTH, SETTINGS_HEIGHT + Math.max(0, overflow));
     await wait(600);
+    // The trend chart only shows its readout while hovered, so park the pointer
+    // over a peak before the Usage tab is captured.
+    if (name === "usage") await hoverChart(window);
     writeFileSync(join(OUT, `settings-${name}.png`), (await window.webContents.capturePage()).toPNG());
     window.setContentSize(SETTINGS_WIDTH, SETTINGS_HEIGHT);
     await wait(200);

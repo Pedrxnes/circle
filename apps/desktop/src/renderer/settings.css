@@ -154,9 +154,135 @@ body {
 
 .sparkline {
   width: 100%;
-  height: 120px;
+  height: 100%;
   color: var(--text);
   display: block;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  column-gap: 8px;
+  align-items: start;
+}
+
+.chart-axis-y {
+  position: relative;
+  height: 120px;
+}
+
+.chart-axis-y span {
+  position: absolute;
+  right: 0;
+  transform: translateY(-50%);
+  font-size: 10.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-plot {
+  position: relative;
+  height: 120px;
+  border-radius: 8px;
+  outline: none;
+  touch-action: none;
+}
+
+.chart-plot:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+
+.chart-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.24);
+  pointer-events: none;
+}
+
+.chart-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--text);
+  opacity: 0.5;
+  box-shadow: 0 0 0 2px var(--surface);
+  pointer-events: none;
+}
+
+.chart-dot-session { opacity: 1; }
+
+.chart-peak {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text);
+  background: var(--surface);
+}
+
+.chart-peak-week { opacity: 0.45; }
+
+.chart-tip {
+  position: absolute;
+  top: 2px;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  background: rgba(14, 17, 21, 0.96);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4);
+  font-size: 11.5px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Readings near the top of the plot would sit under the tooltip. */
+.chart-tip-low { top: auto; bottom: 2px; }
+
+.chart-tip-stamp { color: var(--text-dim); font-size: 11px; }
+
+.chart-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-tip-row i {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.chart-tip-row b { margin-left: 14px; font-weight: 650; }
+
+.chart-axis-x {
+  grid-column: 2;
+  position: relative;
+  height: 15px;
+  margin-top: 7px;
+}
+
+.chart-axis-x span {
+  position: absolute;
+  top: 0;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-foot {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
 }
 
 /* --------------------------------------------------------------- controls */
