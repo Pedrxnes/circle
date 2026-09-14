@@ -1,10 +1,10 @@
-// Renders the product icon from the same rasteriser the tray uses, so the
-// installer, taskbar and tray always show the same mark. Run after `tsc`.
-const { mkdirSync, writeFileSync } = require("node:fs");
+// resources/icon.png is a static designed asset (checked into git), not
+// generated. This just checks it's there before electron-builder runs.
+const { existsSync } = require("node:fs");
 const { join } = require("node:path");
-const { renderAppIcon } = require("../dist/shared/orb-icon.js");
 
-const target = join(__dirname, "..", "resources");
-mkdirSync(target, { recursive: true });
-writeFileSync(join(target, "icon.png"), renderAppIcon(512));
-console.log("Wrote resources/icon.png");
+const iconPath = join(__dirname, "..", "resources", "icon.png");
+if (!existsSync(iconPath)) {
+  throw new Error(`Missing ${iconPath}`);
+}
+console.log("resources/icon.png present");
