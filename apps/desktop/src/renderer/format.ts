@@ -59,3 +59,27 @@ export function formatUpdated(updatedAt: string | null, language: Language): str
   const time = new Date(updatedAt).toLocaleTimeString(localeFor(language), { hour: "2-digit", minute: "2-digit" });
   return `${text.updated} ${time}`;
 }
+
+/** "Sun, 14 Sep · 14:32" — the stamp shown for a hovered chart reading. */
+export function formatSampleStamp(at: string, language: Language): string {
+  const target = Date.parse(at);
+  if (!Number.isFinite(target)) return "";
+  const locale = localeFor(language);
+  const date = new Date(target);
+  const day = date.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
+  const time = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+  return `${day} · ${time}`;
+}
+
+/** Past this much history a clock alone stops telling the reader which day a tick is on. */
+const AXIS_DATE_THRESHOLD_MS = 36 * 3_600_000;
+
+/** Label under the plot: the clock alone over a short span, the day as well over a longer one. */
+export function formatAxisTick(at: number, language: Language, spanMs: number): string {
+  if (!Number.isFinite(at)) return "";
+  const locale = localeFor(language);
+  const date = new Date(at);
+  const time = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+  if (spanMs < AXIS_DATE_THRESHOLD_MS) return time;
+  return `${date.toLocaleDateString(locale, { day: "numeric", month: "short" })} · ${time}`;
+}

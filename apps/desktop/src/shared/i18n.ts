@@ -39,6 +39,9 @@ export interface Strings {
   sourceWsl: string;
   sourceAuto: string;
   noHistoryYet: string;
+  chartHover: string;
+  peakLabel: string;
+  readings: string;
   burnRateTitle: string;
   burnRateHint: string;
   usageSteady: string;
@@ -150,6 +153,9 @@ const en: Strings = {
   sourceWsl: "WSL",
   sourceAuto: "Automatic",
   noHistoryYet: "History fills in as Circle keeps reading your usage.",
+  chartHover: "Hover the chart for the exact reading.",
+  peakLabel: "Peak",
+  readings: "readings",
   burnRateTitle: "At this pace",
   burnRateHint: "Based on how fast you've been using each window recently.",
   usageSteady: "On track — no window is projected to run out before it resets.",
@@ -261,6 +267,9 @@ const ptBR: Strings = {
   sourceWsl: "WSL",
   sourceAuto: "Automática",
   noHistoryYet: "O histórico é preenchido conforme o Circle lê seu uso.",
+  chartHover: "Passe o mouse no gráfico para ver a leitura exata.",
+  peakLabel: "Pico",
+  readings: "leituras",
   burnRateTitle: "No ritmo atual",
   burnRateHint: "Baseado na velocidade recente de uso de cada janela.",
   usageSteady: "Sob controle — nenhuma janela deve esgotar antes de renovar.",
