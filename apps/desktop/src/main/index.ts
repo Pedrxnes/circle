@@ -6,6 +6,7 @@ import { strings } from "../shared/i18n";
 import {
   ORB_DIAMETERS,
   findWindow,
+  isHistoryView,
   ringColor,
   ringPercent,
   secondaryMetric
@@ -405,7 +406,12 @@ function registerIpc(): void {
   ipcMain.handle("circle:end-drag", (event) => { requireTrusted(event); endDrag(); });
   ipcMain.handle("circle:open-settings", (event) => { requireTrusted(event); showSettings(); });
   ipcMain.handle("circle:get-sources", (event) => { requireTrusted(event); return claude.sources(); });
-  ipcMain.handle("circle:get-history", (event) => { requireTrusted(event); return historyStore.summary(); });
+  ipcMain.handle("circle:get-history", (event, view: unknown, offset: unknown) => {
+    requireTrusted(event);
+    const safeView = isHistoryView(view) ? view : "week";
+    const safeOffset = typeof offset === "number" && Number.isInteger(offset) && offset >= 0 ? offset : 0;
+    return historyStore.summary(safeView, safeOffset);
+  });
   ipcMain.handle("circle:get-login-item", (event) => { requireTrusted(event); return loginItemStatus(); });
   ipcMain.handle("circle:set-login-item", (event, enabled: unknown) => {
     requireTrusted(event);

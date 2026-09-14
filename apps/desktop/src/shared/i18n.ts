@@ -32,13 +32,20 @@ export interface Strings {
 
   overview: string;
   peakThisWeek: string;
+  peakInPeriod: string;
   last7Days: string;
+  viewWeek: string;
+  viewMonth: string;
+  prevPeriod: string;
+  nextPeriod: string;
+  currentPeriod: string;
   account: string;
   source: string;
   sourceHost: string;
   sourceWsl: string;
   sourceAuto: string;
   noHistoryYet: string;
+  noHistoryPeriod: string;
   chartHover: string;
   peakLabel: string;
   readings: string;
@@ -146,13 +153,20 @@ const en: Strings = {
 
   overview: "Overview",
   peakThisWeek: "Peak in the last 7 days",
-  last7Days: "Last 7 days",
+  peakInPeriod: "Peak in this period",
+  last7Days: "Usage trend",
+  viewWeek: "Week",
+  viewMonth: "Month",
+  prevPeriod: "Previous period",
+  nextPeriod: "Next period",
+  currentPeriod: "Back to today",
   account: "Account",
   source: "Credential source",
   sourceHost: "Windows",
   sourceWsl: "WSL",
   sourceAuto: "Automatic",
   noHistoryYet: "History fills in as Circle keeps reading your usage.",
+  noHistoryPeriod: "No readings in this period.",
   chartHover: "Hover the chart for the exact reading.",
   peakLabel: "Peak",
   readings: "readings",
@@ -260,13 +274,20 @@ const ptBR: Strings = {
 
   overview: "Visão geral",
   peakThisWeek: "Pico nos últimos 7 dias",
-  last7Days: "Últimos 7 dias",
+  peakInPeriod: "Pico neste período",
+  last7Days: "Tendência de uso",
+  viewWeek: "Semana",
+  viewMonth: "Mês",
+  prevPeriod: "Período anterior",
+  nextPeriod: "Próximo período",
+  currentPeriod: "Voltar para hoje",
   account: "Conta",
   source: "Origem das credenciais",
   sourceHost: "Windows",
   sourceWsl: "WSL",
   sourceAuto: "Automática",
   noHistoryYet: "O histórico é preenchido conforme o Circle lê seu uso.",
+  noHistoryPeriod: "Sem leituras neste período.",
   chartHover: "Passe o mouse no gráfico para ver a leitura exata.",
   peakLabel: "Pico",
   readings: "leituras",

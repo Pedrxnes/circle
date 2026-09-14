@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { HISTORY_MAX_SAMPLES, HISTORY_RETENTION_DAYS, clampPercent } from "../shared/types";
-import type { HistorySample, HistorySummary, Usage } from "../shared/types";
+import type { HistorySample, HistorySummary, HistoryView, Usage } from "../shared/types";
 
 /** Keeps a rolling local log of usage readings so Settings can plot a trend. */
 export class HistoryStore {
@@ -39,22 +39,56 @@ export class HistoryStore {
     }
   }
 
-  summary(now = new Date()): HistorySummary {
-    const samples = prune(this.load(), now);
-    const week = samples.filter((sample) => Date.parse(sample.at) >= now.getTime() - 7 * 86_400_000);
-    const latest = week[week.length - 1];
-    const sessionRate = burnRatePerHour(week, "session");
-    const weekRate = burnRatePerHour(week, "week");
+  /** `offset` counts periods back from the current one (0 = this week/month, 1 = the previous, …).
+   * The burn-rate projection always looks at the last 7 days regardless of the browsed period —
+   * it answers "at today's pace", not "at that period's pace". */
+  summary(view: HistoryView = "week", offset = 0, now = new Date()): HistorySummary {
+    const all = prune(this.load(), now);
+    const range = view === "month" ? monthRange(now, offset) : weekRange(now, offset);
+    const period = all.filter((sample) => {
+      const at = Date.parse(sample.at);
+      return at >= range.from && at < range.to;
+    });
+
+    const recent = all.filter((sample) => Date.parse(sample.at) >= now.getTime() - 7 * 86_400_000);
+    const latest = recent[recent.length - 1];
+    const sessionRate = burnRatePerHour(recent, "session");
+    const weekRate = burnRatePerHour(recent, "week");
+
     return {
-      samples: week,
-      peakSession: week.reduce((peak, sample) => Math.max(peak, sample.session), 0),
-      peakWeek: week.reduce((peak, sample) => Math.max(peak, sample.week), 0),
+      samples: period,
+      peakSession: period.reduce((peak, sample) => Math.max(peak, sample.session), 0),
+      peakWeek: period.reduce((peak, sample) => Math.max(peak, sample.week), 0),
       sessionRatePerHour: sessionRate,
       weekRatePerHour: weekRate,
       projectedSessionExhaustion: latest ? projectExhaustion(sessionRate, latest.session, now) : null,
-      projectedWeekExhaustion: latest ? projectExhaustion(weekRate, latest.week, now) : null
+      projectedWeekExhaustion: latest ? projectExhaustion(weekRate, latest.week, now) : null,
+      rangeFrom: new Date(range.from).toISOString(),
+      rangeTo: new Date(range.to).toISOString(),
+      hasOlder: all.some((sample) => Date.parse(sample.at) < range.from),
+      hasNewer: offset > 0
     };
   }
+}
+
+interface Range { from: number; to: number; }
+
+/** Monday-start calendar week, `offset` weeks back from the one `now` falls in. */
+function weekRange(now: Date, offset: number): Range {
+  const day = now.getDay();
+  const sinceMonday = (day + 6) % 7;
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - sinceMonday - offset * 7);
+  const from = monday.getTime();
+  const to = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 7).getTime();
+  return { from, to };
+}
+
+/** Calendar month, `offset` months back from the one `now` falls in. */
+function monthRange(now: Date, offset: number): Range {
+  const first = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+  const from = first.getTime();
+  const to = new Date(first.getFullYear(), first.getMonth() + 1, 1).getTime();
+  return { from, to };
 }
 
 const MIN_TREND_SAMPLES = 3;

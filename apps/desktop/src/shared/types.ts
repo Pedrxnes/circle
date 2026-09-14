@@ -76,6 +76,13 @@ export interface HistorySample {
   week: number;
 }
 
+/** Calendar granularity the trend chart can be browsed by. */
+export type HistoryView = "week" | "month";
+
+export function isHistoryView(value: unknown): value is HistoryView {
+  return value === "week" || value === "month";
+}
+
 export interface HistorySummary {
   samples: HistorySample[];
   peakSession: number;
@@ -86,6 +93,12 @@ export interface HistorySummary {
   /** ISO timestamp for when the current pace would hit 100%, or null when usage isn't climbing. */
   projectedSessionExhaustion: string | null;
   projectedWeekExhaustion: string | null;
+  /** Calendar bounds of the browsed period, [rangeFrom, rangeTo). */
+  rangeFrom: string;
+  rangeTo: string;
+  /** Whether stored samples reach further back than this period, or forward of it. */
+  hasOlder: boolean;
+  hasNewer: boolean;
 }
 
 export interface ExhaustionWarning {
@@ -144,8 +157,9 @@ export const ORB_BOX_HEIGHT = 300;
 export const MIN_REFRESH_INTERVAL_SECONDS = 60;
 export const DEFAULT_REFRESH_INTERVAL_SECONDS = 300;
 export const PRESENCE_CACHE_TTL_MS = 30_000;
-export const HISTORY_RETENTION_DAYS = 30;
-export const HISTORY_MAX_SAMPLES = 4000;
+export const HISTORY_RETENTION_DAYS = 90;
+/** ~90 days at the default 5-minute refresh interval; a faster interval trims older days first. */
+export const HISTORY_MAX_SAMPLES = 26_000;
 
 export const DEFAULT_ACCENT = "#d97757";
 

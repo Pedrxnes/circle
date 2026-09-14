@@ -1,13 +1,16 @@
 import assert from "node:assert/strict";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
-import { burnRatePerHour, projectExhaustion, prune, samplesSinceLastReset } from "../main/history";
+import { HistoryStore, burnRatePerHour, projectExhaustion, prune, samplesSinceLastReset } from "../main/history";
 import { HISTORY_MAX_SAMPLES } from "../shared/types";
 
-const now = new Date("2026-09-09T12:00:00Z");
+const now = new Date("2026-09-09T12:00:00Z"); // a Wednesday
 
 test("prune drops samples older than the retention window", () => {
   const kept = prune([
-    { at: "2026-08-01T12:00:00Z", session: 10, week: 10 },
+    { at: "2026-01-01T12:00:00Z", session: 10, week: 10 },
     { at: "2026-09-08T12:00:00Z", session: 20, week: 30 }
   ], now);
   assert.deepEqual(kept.map((sample) => sample.session), [20]);
@@ -72,3 +75,34 @@ test("projectExhaustion is null without a positive rate, and immediate once alre
   assert.equal(projectExhaustion(-2, 50, now), null);
   assert.equal(projectExhaustion(5, 100, now), now.toISOString());
 });
+
+test("summary scopes samples to the browsed calendar week and reports whether older data exists", () => {
+  const store = new HistoryStore(tempDir());
+  store.record({ state: "ok", windows: [{ key: "session", percent: 10, resetsAt: null }, { key: "week", percent: 20, resetsAt: null }], accountEmail: null, updatedAt: null, error: null, sourceLabel: null }, new Date("2026-09-01T12:00:00Z")); // last week (Tue)
+  store.record({ state: "ok", windows: [{ key: "session", percent: 30, resetsAt: null }, { key: "week", percent: 40, resetsAt: null }], accountEmail: null, updatedAt: null, error: null, sourceLabel: null }, now); // this week (Wed)
+
+  const current = store.summary("week", 0, now);
+  assert.deepEqual(current.samples.map((s) => s.session), [30]);
+  assert.equal(current.hasOlder, true);
+  assert.equal(current.hasNewer, false);
+
+  const previous = store.summary("week", 1, now);
+  assert.deepEqual(previous.samples.map((s) => s.session), [10]);
+  assert.equal(previous.hasNewer, true);
+});
+
+test("summary scopes samples to the browsed calendar month", () => {
+  const store = new HistoryStore(tempDir());
+  store.record({ state: "ok", windows: [{ key: "session", percent: 5, resetsAt: null }, { key: "week", percent: 5, resetsAt: null }], accountEmail: null, updatedAt: null, error: null, sourceLabel: null }, new Date("2026-08-15T12:00:00Z"));
+  store.record({ state: "ok", windows: [{ key: "session", percent: 50, resetsAt: null }, { key: "week", percent: 50, resetsAt: null }], accountEmail: null, updatedAt: null, error: null, sourceLabel: null }, now);
+
+  const thisMonth = store.summary("month", 0, now);
+  assert.deepEqual(thisMonth.samples.map((s) => s.session), [50]);
+
+  const lastMonth = store.summary("month", 1, now);
+  assert.deepEqual(lastMonth.samples.map((s) => s.session), [5]);
+});
+
+function tempDir(): string {
+  return mkdtempSync(join(tmpdir(), "circle-history-test-"));
+}

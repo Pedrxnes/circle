@@ -14,10 +14,10 @@ import {
   ringPercent,
   secondaryMetric
 } from "../shared/types";
-import type { AppInfo, HistorySummary, Language, Settings, SourceInfo, Usage } from "../shared/types";
+import type { AppInfo, HistorySummary, HistoryView, Language, Settings, SourceInfo, Usage } from "../shared/types";
 import { Ring } from "./Ring";
 import { Row, Section, Segmented, Slider, Toggle } from "./controls";
-import { formatExhaustion, formatReset, formatUpdated, metricHint, metricLabel } from "./format";
+import { formatExhaustion, formatPeriodLabel, formatReset, formatUpdated, metricHint, metricLabel } from "./format";
 import { Sparkline } from "./Sparkline";
 import "./settings.css";
 
@@ -35,8 +35,14 @@ function App(): JSX.Element {
     sessionRatePerHour: null,
     weekRatePerHour: null,
     projectedSessionExhaustion: null,
-    projectedWeekExhaustion: null
+    projectedWeekExhaustion: null,
+    rangeFrom: new Date().toISOString(),
+    rangeTo: new Date().toISOString(),
+    hasOlder: false,
+    hasNewer: false
   });
+  const [historyView, setHistoryView] = useState<HistoryView>("week");
+  const [historyOffset, setHistoryOffset] = useState(0);
   const [sources, setSources] = useState<SourceInfo | null>(null);
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [loginItem, setLoginItem] = useState({ available: false, enabled: false });
@@ -45,8 +51,13 @@ function App(): JSX.Element {
   const [thresholdDraft, setThresholdDraft] = useState<string | null>(null);
 
   const reload = useCallback(() => {
-    void window.circle.getHistory().then(setHistory);
+    void window.circle.getHistory(historyView, historyOffset).then(setHistory);
     void window.circle.getSources().then(setSources);
+  }, [historyView, historyOffset]);
+
+  const changeHistoryView = useCallback((view: HistoryView) => {
+    setHistoryView(view);
+    setHistoryOffset(0);
   }, []);
 
   useEffect(() => {
@@ -147,15 +158,54 @@ function App(): JSX.Element {
             <Section
               title={text.last7Days}
               hint={history.samples.length > 1
-                ? `${text.peakThisWeek}: ${metricLabel("session", settings.language)} ${Math.round(history.peakSession)}% · ${metricLabel("week", settings.language)} ${Math.round(history.peakWeek)}%`
+                ? `${text.peakInPeriod}: ${metricLabel("session", settings.language)} ${Math.round(history.peakSession)}% · ${metricLabel("week", settings.language)} ${Math.round(history.peakWeek)}%`
                 : undefined}
             >
+              <div className="history-toolbar">
+                <Segmented
+                  value={historyView}
+                  onChange={changeHistoryView}
+                  options={[
+                    { value: "week", label: text.viewWeek },
+                    { value: "month", label: text.viewMonth }
+                  ]}
+                />
+                <div className="history-nav">
+                  <button
+                    type="button"
+                    className="button-icon"
+                    aria-label={text.prevPeriod}
+                    onClick={() => setHistoryOffset((offset) => offset + 1)}
+                    disabled={!history.hasOlder}
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    className="history-period"
+                    onClick={() => setHistoryOffset(0)}
+                    disabled={historyOffset === 0}
+                    title={text.currentPeriod}
+                  >
+                    {formatPeriodLabel(history.rangeFrom, history.rangeTo, historyView, settings.language)}
+                  </button>
+                  <button
+                    type="button"
+                    className="button-icon"
+                    aria-label={text.nextPeriod}
+                    onClick={() => setHistoryOffset((offset) => Math.max(0, offset - 1))}
+                    disabled={!history.hasNewer}
+                  >
+                    ›
+                  </button>
+                </div>
+              </div>
               {history.samples.length > 1
                 ? <Sparkline samples={history.samples} accent={settings.accentColor} language={settings.language} />
-                : <p className="muted">{text.noHistoryYet}</p>}
+                : <p className="muted">{historyOffset === 0 && historyView === "week" ? text.noHistoryYet : text.noHistoryPeriod}</p>}
             </Section>
 
-            {history.samples.length > 1 && (
+            {historyOffset === 0 && history.samples.length > 1 && (
               <Section title={text.burnRateTitle} hint={text.burnRateHint}>
                 {warnings.length > 0
                   ? warnings.map((warning) => (

@@ -1,5 +1,5 @@
 import { strings } from "../shared/i18n";
-import type { Language, MetricKey } from "../shared/types";
+import type { HistoryView, Language, MetricKey } from "../shared/types";
 
 export function localeFor(language: Language): string {
   return language === "pt-BR" ? "pt-BR" : "en-US";
@@ -69,6 +69,18 @@ export function formatSampleStamp(at: string, language: Language): string {
   const day = date.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
   const time = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   return `${day} · ${time}`;
+}
+
+/** "8–14 Sep 2026" for a browsed week, "September 2026" for a browsed month. */
+export function formatPeriodLabel(rangeFrom: string, rangeTo: string, view: HistoryView, language: Language): string {
+  const locale = localeFor(language);
+  const from = new Date(rangeFrom);
+  if (view === "month") return from.toLocaleDateString(locale, { month: "long", year: "numeric" });
+  const lastDay = new Date(Date.parse(rangeTo) - 86_400_000);
+  const sameMonth = from.getMonth() === lastDay.getMonth() && from.getFullYear() === lastDay.getFullYear();
+  const start = from.toLocaleDateString(locale, { day: "numeric", month: sameMonth ? undefined : "short" });
+  const end = lastDay.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+  return `${start}–${end}`;
 }
 
 /** Past this much history a clock alone stops telling the reader which day a tick is on. */
