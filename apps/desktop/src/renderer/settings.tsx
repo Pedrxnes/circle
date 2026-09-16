@@ -15,6 +15,7 @@ import {
   secondaryMetric
 } from "../shared/types";
 import type { AppInfo, HistorySummary, HistoryView, Language, Settings, SourceInfo, Usage } from "../shared/types";
+import appIcon from "../../resources/icon.png";
 import { Ring } from "./Ring";
 import { Row, Section, Segmented, Slider, Toggle } from "./controls";
 import { formatExhaustion, formatPeriodLabel, formatReset, formatUpdated, metricHint, metricLabel } from "./format";
@@ -89,19 +90,12 @@ function App(): JSX.Element {
 
   const warnings = exhaustionWarnings(usage, history);
   const percent = ringPercent(usage, settings.ringMetric);
-  const colour = usage.state === "ok" ? ringColor(percent, settings.colorMode, settings.accentColor) : "#8a8f98";
 
   return (
     <div className="app">
       <header className="app-head">
         <div className="brand">
-          <Ring
-            size={34}
-            percent={usage.state === "ok" ? percent : 0}
-            secondaryPercent={usage.state === "ok" ? findWindow(usage, secondaryMetric(settings.ringMetric))?.percent ?? 0 : 0}
-            color={colour}
-            thickness={4}
-          />
+          <img className="brand-icon" src={appIcon} alt="" width={34} height={34} />
           <div>
             <h1>{text.appName}</h1>
             <p>{usage.sourceLabel ?? text.settingsTitle}</p>
