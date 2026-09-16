@@ -83,6 +83,38 @@ export function formatPeriodLabel(rangeFrom: string, rangeTo: string, view: Hist
   return `${start}–${end}`;
 }
 
+/** A percentage or point count: one decimal while small enough for it to matter, whole numbers above. */
+export function formatPoints(value: number, language: Language): string {
+  return value.toLocaleString(localeFor(language), { maximumFractionDigits: Math.abs(value) < 10 ? 1 : 0 });
+}
+
+/** "+14 pts" / "−3.5 p.p." — how far weekly usage sits from an even spread. */
+export function formatPaceDelta(delta: number, language: Language): string {
+  const magnitude = formatPoints(Math.abs(delta), language);
+  const sign = magnitude === "0" ? "" : delta > 0 ? "+" : "−";
+  return `${sign}${magnitude} ${strings(language).pointsUnit}`;
+}
+
+/** "+23%" / "−8%" for a relative change such as 0.23. */
+export function formatChange(ratio: number): string {
+  const rounded = Math.round(Math.abs(ratio) * 100);
+  return `${rounded === 0 ? "" : ratio > 0 ? "+" : "−"}${rounded}%`;
+}
+
+/** "Mon" / "seg." — the label under a daily bar. */
+export function formatWeekday(at: string, language: Language): string {
+  const target = Date.parse(at);
+  if (!Number.isFinite(target)) return "";
+  return new Date(target).toLocaleDateString(localeFor(language), { weekday: "short" });
+}
+
+/** "Mon, 14 Sep" — the day a daily bar stands for. */
+export function formatDay(at: string, language: Language): string {
+  const target = Date.parse(at);
+  if (!Number.isFinite(target)) return "";
+  return new Date(target).toLocaleDateString(localeFor(language), { weekday: "short", day: "numeric", month: "short" });
+}
+
 /** Past this much history a clock alone stops telling the reader which day a tick is on. */
 const AXIS_DATE_THRESHOLD_MS = 36 * 3_600_000;
 

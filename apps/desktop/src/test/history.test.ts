@@ -3,7 +3,16 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { HistoryStore, burnRatePerHour, projectExhaustion, prune, samplesSinceLastReset } from "../main/history";
+import {
+  HistoryStore,
+  burnRatePerHour,
+  projectExhaustion,
+  prune,
+  samplesSinceLastReset,
+  sessionPeaks,
+  weekConsumption,
+  weeklyActivity
+} from "../main/history";
 import { HISTORY_MAX_SAMPLES } from "../shared/types";
 
 const now = new Date("2026-09-09T12:00:00Z"); // a Wednesday
@@ -101,6 +110,62 @@ test("summary scopes samples to the browsed calendar month", () => {
 
   const lastMonth = store.summary("month", 1, now);
   assert.deepEqual(lastMonth.samples.map((s) => s.session), [5]);
+});
+
+test("weekConsumption adds up climbs, ignores noise and counts a rollover's fresh usage", () => {
+  const consumed = weekConsumption([
+    { at: "2026-09-09T08:00:00Z", session: 0, week: 40 },
+    { at: "2026-09-09T09:00:00Z", session: 0, week: 45 },
+    { at: "2026-09-09T10:00:00Z", session: 0, week: 44.5 }, // noise
+    { at: "2026-09-09T11:00:00Z", session: 0, week: 3 } // weekly reset
+  ]);
+  assert.deepEqual(consumed.map((entry) => entry.points), [5, 0, 3]);
+});
+
+test("sessionPeaks splits windows on a drop to zero, a rollover or a long silence", () => {
+  const peaks = sessionPeaks([
+    { at: "2026-09-09T00:00:00Z", session: 10, week: 0 },
+    { at: "2026-09-09T01:00:00Z", session: 60, week: 0 },
+    { at: "2026-09-09T02:00:00Z", session: 0, week: 0 },
+    { at: "2026-09-09T03:00:00Z", session: 95, week: 0 },
+    { at: "2026-09-09T04:00:00Z", session: 4, week: 0 }, // rolled over
+    { at: "2026-09-09T12:00:00Z", session: 30, week: 0 } // hours of silence
+  ]);
+  assert.deepEqual(peaks, [60, 95, 4, 30]);
+});
+
+test("weeklyActivity buckets weekly usage by local day and leaves unread days empty", () => {
+  const local = (daysBack: number, hour: number): string =>
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack, hour).toISOString();
+  const activity = weeklyActivity([
+    { at: local(3, 9), session: 20, week: 10 },
+    { at: local(3, 18), session: 95, week: 25 },
+    { at: local(1, 10), session: 30, week: 40 },
+    { at: local(0, 8), session: 10, week: 42 }
+  ], now);
+
+  assert.equal(activity.days.length, 7);
+  assert.deepEqual(activity.days.map((day) => day.points), [null, null, null, 15, null, 15, 2]);
+  assert.equal(activity.dailyAverage, 15);
+  assert.equal(activity.changeVsPreviousWeek, null);
+  assert.equal(activity.sessionsNearLimit, 1);
+});
+
+test("weeklyActivity compares the last seven days with the seven before once both are on record", () => {
+  const at = (daysBack: number): string => new Date(now.getTime() - daysBack * 86_400_000).toISOString();
+  const activity = weeklyActivity([
+    { at: at(14), session: 0, week: 0 },
+    { at: at(10), session: 0, week: 20 },
+    { at: at(3), session: 0, week: 50 }
+  ], now);
+  assert.equal(activity.changeVsPreviousWeek, 0.5);
+});
+
+test("summary carries weekly activity whatever period is browsed", () => {
+  const store = new HistoryStore(tempDir());
+  store.record({ state: "ok", windows: [{ key: "session", percent: 10, resetsAt: null }, { key: "week", percent: 20, resetsAt: null }], accountEmail: null, updatedAt: null, error: null, sourceLabel: null }, new Date(now.getTime() - 3_600_000));
+  store.record({ state: "ok", windows: [{ key: "session", percent: 30, resetsAt: null }, { key: "week", percent: 26, resetsAt: null }], accountEmail: null, updatedAt: null, error: null, sourceLabel: null }, now);
+  assert.equal(store.summary("month", 2, now).weekly.days.at(-1)?.points, 6);
 });
 
 function tempDir(): string {

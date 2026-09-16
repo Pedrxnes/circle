@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { HISTORY_MAX_SAMPLES, HISTORY_RETENTION_DAYS, clampPercent } from "../shared/types";
-import type { HistorySample, HistorySummary, HistoryView, Usage } from "../shared/types";
+import { HISTORY_MAX_SAMPLES, HISTORY_RETENTION_DAYS, SESSION_NEAR_LIMIT_PERCENT, clampPercent } from "../shared/types";
+import type { DailyUsage, HistorySample, HistorySummary, HistoryView, Usage, WeeklyActivity } from "../shared/types";
 
 /** Keeps a rolling local log of usage readings so Settings can plot a trend. */
 export class HistoryStore {
@@ -66,7 +66,8 @@ export class HistoryStore {
       rangeFrom: new Date(range.from).toISOString(),
       rangeTo: new Date(range.to).toISOString(),
       hasOlder: all.some((sample) => Date.parse(sample.at) < range.from),
-      hasNewer: offset > 0
+      hasNewer: offset > 0,
+      weekly: weeklyActivity(all, now)
     };
   }
 }
@@ -129,6 +130,86 @@ export function projectExhaustion(ratePerHour: number | null, currentPercent: nu
   if (currentPercent >= 100) return now.toISOString();
   const hoursRemaining = (100 - currentPercent) / ratePerHour;
   return new Date(now.getTime() + hoursRemaining * 3_600_000).toISOString();
+}
+
+const DAY_MS = 86_400_000;
+const WEEK_MS = 7 * DAY_MS;
+const SESSION_WINDOW_MS = 5 * 3_600_000;
+
+interface Consumption { at: number; points: number; }
+
+/** Weekly-window points each reading added since the one before it, dated at the later reading.
+ * A drop bigger than noise is a rollover, so the reading itself is what was used since the reset. */
+export function weekConsumption(samples: HistorySample[]): Consumption[] {
+  const consumed: Consumption[] = [];
+  for (let index = 1; index < samples.length; index++) {
+    const previous = samples[index - 1]!;
+    const current = samples[index]!;
+    const change = current.week - previous.week;
+    const points = change < -RESET_DROP_THRESHOLD ? current.week : Math.max(0, change);
+    consumed.push({ at: Date.parse(current.at), points });
+  }
+  return consumed;
+}
+
+/** Peak of each session window in the log. A window ends when usage drops to zero, rolls over,
+ * or the readings go quiet for longer than a whole session. */
+export function sessionPeaks(samples: HistorySample[]): number[] {
+  const peaks: number[] = [];
+  let peak: number | null = null;
+  let previous: HistorySample | undefined;
+  for (const sample of samples) {
+    const rolledOver = previous !== undefined && (
+      sample.session < previous.session - RESET_DROP_THRESHOLD
+      || Date.parse(sample.at) - Date.parse(previous.at) >= SESSION_WINDOW_MS
+    );
+    if (peak !== null && (rolledOver || sample.session <= 0)) {
+      peaks.push(peak);
+      peak = null;
+    }
+    if (sample.session > 0) peak = Math.max(peak ?? 0, sample.session);
+    previous = sample;
+  }
+  if (peak !== null) peaks.push(peak);
+  return peaks;
+}
+
+/** Weekly-window activity over the last seven days, read off the whole log so it never depends on the browsed period. */
+export function weeklyActivity(samples: HistorySample[], now: Date): WeeklyActivity {
+  const nowMs = now.getTime();
+  // One reading before the two-week horizon gives the first delta inside it something to compare against.
+  const horizon = nowMs - 2 * WEEK_MS;
+  const firstInside = samples.findIndex((sample) => Date.parse(sample.at) >= horizon);
+  const relevant = firstInside < 0 ? [] : samples.slice(Math.max(0, firstInside - 1));
+  const consumed = weekConsumption(relevant);
+  const pointsBetween = (from: number, to: number): number =>
+    consumed.reduce((sum, entry) => (entry.at >= from && entry.at < to ? sum + entry.points : sum), 0);
+  const readAt = relevant.map((sample) => Date.parse(sample.at));
+
+  const days: DailyUsage[] = Array.from({ length: 7 }, (_unused, index) => {
+    const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6 + index).getTime();
+    const to = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 5 + index).getTime();
+    const hasReading = readAt.some((at) => at >= from && at < to);
+    return { day: new Date(from).toISOString(), points: hasReading ? pointsBetween(from, to) : null };
+  });
+
+  // Today is still under way, so it would drag the average down.
+  const complete = days.slice(0, -1).flatMap((day) => (day.points === null ? [] : [day.points]));
+  const dailyAverage = complete.length ? complete.reduce((sum, points) => sum + points, 0) / complete.length : null;
+
+  const firstAt = samples.length ? Date.parse(samples[0]!.at) : Number.POSITIVE_INFINITY;
+  const lastWeek = pointsBetween(nowMs - WEEK_MS, nowMs + 1);
+  const weekBefore = pointsBetween(horizon, nowMs - WEEK_MS);
+  const changeVsPreviousWeek = firstAt <= horizon + DAY_MS && weekBefore >= 1 ? (lastWeek - weekBefore) / weekBefore : null;
+
+  const peaks = sessionPeaks(relevant.filter((_sample, index) => readAt[index]! >= nowMs - WEEK_MS));
+  return {
+    days,
+    dailyAverage,
+    changeVsPreviousWeek,
+    sessionsStarted: peaks.length,
+    sessionsNearLimit: peaks.filter((peak) => peak >= SESSION_NEAR_LIMIT_PERCENT).length
+  };
 }
 
 function isSample(value: unknown): value is HistorySample {

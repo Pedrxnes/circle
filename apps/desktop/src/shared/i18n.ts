@@ -55,6 +55,30 @@ export interface Strings {
   exhaustsNow: string;
   exhaustsIn: string;
   exhaustsOn: string;
+  weeklyPaceTitle: string;
+  weeklyPaceHint: string;
+  paceUnder: string;
+  paceOn: string;
+  paceOver: string;
+  paceExpectedNow: string;
+  paceUnavailable: string;
+  pointsUnit: string;
+  projectedAtReset: string;
+  needsMoreReadings: string;
+  dailyBudget: string;
+  dailyBudgetHint: string;
+  budgetUntilReset: string;
+  today: string;
+  ofWord: string;
+  expectedPerDay: string;
+  dailyAverage: string;
+  completeDaysHint: string;
+  vsPreviousWeek: string;
+  dailyUsageTitle: string;
+  expectedLine: string;
+  noReadings: string;
+  sessionsLastWeek: string;
+  sessionsNearLimit: string;
 
   floatingOrb: string;
   floatingOrbHint: string;
@@ -177,6 +201,31 @@ const en: Strings = {
   exhaustsIn: "runs out in",
   exhaustsOn: "runs out around",
 
+  weeklyPaceTitle: "Weekly pace",
+  weeklyPaceHint: "Your weekly usage compared with an even spread across the 7-day window.",
+  paceUnder: "Below expected",
+  paceOn: "Within expected",
+  paceOver: "Above expected",
+  paceExpectedNow: "expected by now",
+  paceUnavailable: "Pace shows up once Anthropic reports when your weekly window resets.",
+  pointsUnit: "pts",
+  projectedAtReset: "Projected at reset",
+  needsMoreReadings: "Needs a few more readings",
+  dailyBudget: "Available per day",
+  dailyBudgetHint: "to spread evenly until the reset",
+  budgetUntilReset: "Available until reset",
+  today: "Today",
+  ofWord: "of",
+  expectedPerDay: "expected per day",
+  dailyAverage: "Daily average",
+  completeDaysHint: "complete days in the last week",
+  vsPreviousWeek: "vs the previous 7 days",
+  dailyUsageTitle: "Weekly usage per day",
+  expectedLine: "Expected per day",
+  noReadings: "no readings",
+  sessionsLastWeek: "Sessions in the last 7 days",
+  sessionsNearLimit: "near the limit",
+
   floatingOrb: "Floating orb",
   floatingOrbHint: "The circle that stays on top of your desktop.",
   enableOrb: "Enable the floating orb",
@@ -297,6 +346,31 @@ const ptBR: Strings = {
   exhaustsNow: "Já no limite",
   exhaustsIn: "esgota em",
   exhaustsOn: "esgota por volta de",
+
+  weeklyPaceTitle: "Ritmo semanal",
+  weeklyPaceHint: "Seu uso semanal comparado com uma distribuição uniforme ao longo dos 7 dias.",
+  paceUnder: "Abaixo do previsto",
+  paceOn: "Dentro do previsto",
+  paceOver: "Acima do previsto",
+  paceExpectedNow: "previsto até agora",
+  paceUnavailable: "O ritmo aparece quando a Anthropic informar a renovação da janela semanal.",
+  pointsUnit: "p.p.",
+  projectedAtReset: "Previsão na renovação",
+  needsMoreReadings: "Precisa de mais leituras",
+  dailyBudget: "Disponível por dia",
+  dailyBudgetHint: "para distribuir até a renovação",
+  budgetUntilReset: "Disponível até renovar",
+  today: "Hoje",
+  ofWord: "de",
+  expectedPerDay: "previstos por dia",
+  dailyAverage: "Média diária",
+  completeDaysHint: "dias completos da última semana",
+  vsPreviousWeek: "vs. os 7 dias anteriores",
+  dailyUsageTitle: "Uso semanal por dia",
+  expectedLine: "Previsto por dia",
+  noReadings: "sem leituras",
+  sessionsLastWeek: "Sessões nos últimos 7 dias",
+  sessionsNearLimit: "perto do limite",
 
   floatingOrb: "Círculo flutuante",
   floatingOrbHint: "O círculo que fica sobre a sua área de trabalho.",

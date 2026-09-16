@@ -54,11 +54,28 @@ ipcMain.handle("circle:get-app-info", () => ({
   dataPath: "C:\\Users\\you\\AppData\\Roaming\\Circle", electron: process.versions.electron
 }));
 ipcMain.handle("circle:get-login-item", () => ({ available: true, enabled: true }));
-ipcMain.handle("circle:get-history", () => ({
-  samples,
-  peakSession: Math.max(...samples.map((sample) => sample.session)),
-  peakWeek: Math.max(...samples.map((sample) => sample.week))
-}));
+ipcMain.handle("circle:get-history", () => {
+  // The derived numbers come from the real history module so the Weekly pace section matches the app.
+  const { burnRatePerHour, projectExhaustion, weeklyActivity } = require("../dist/main/history.js");
+  const now = new Date();
+  const latest = samples[samples.length - 1];
+  const sessionRate = burnRatePerHour(samples, "session");
+  const weekRate = burnRatePerHour(samples, "week");
+  return {
+    samples,
+    peakSession: Math.max(...samples.map((sample) => sample.session)),
+    peakWeek: Math.max(...samples.map((sample) => sample.week)),
+    sessionRatePerHour: sessionRate,
+    weekRatePerHour: weekRate,
+    projectedSessionExhaustion: projectExhaustion(sessionRate, latest.session, now),
+    projectedWeekExhaustion: projectExhaustion(weekRate, latest.week, now),
+    rangeFrom: samples[0].at,
+    rangeTo: now.toISOString(),
+    hasOlder: false,
+    hasNewer: false,
+    weekly: weeklyActivity(samples, now)
+  };
+});
 ipcMain.handle("circle:get-sources", () => ({
   host: true, wsl: [{ distro: "Ubuntu", present: true }], saved: null, active: { location: "host" }
 }));

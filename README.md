@@ -68,6 +68,12 @@ again at 90% — both configurable — and rearms when usage drops back down.
 **A seven-day trend.** Circle keeps its readings locally and plots the last week,
 with the peak for each window.
 
+**Weekly pace and forecasts.** Circle tells you whether your weekly usage is
+within, above or below what an even spread across the 7-day window predicts,
+projects where the week lands when it resets, and shows how much you can use per
+day until then — next to today's usage, your daily average, a per-day breakdown
+of the last week and how many sessions ran close to their limit.
+
 **WSL aware.** Claude Code on Windows often lives inside WSL. Circle finds the
 credentials in either place, and lets you pin which one to read.
 
@@ -118,10 +124,21 @@ Click the orb to open Settings.
 
 ### Usage
 
-<img src="docs/settings-usage.png" alt="The Usage tab: session and weekly gauges, a seven-day trend chart, and the credential source picker" width="760" />
+<img src="docs/settings-usage.png" alt="The Usage tab: session and weekly gauges, the weekly pace forecast, a seven-day trend chart, and the credential source picker" width="760" />
 
-Per-window gauges, the seven-day trend, the account your token belongs to, and
-which credential source to read — automatic, Windows, or a specific WSL distro.
+Per-window gauges, the weekly pace, the seven-day trend, the account your token
+belongs to, and which credential source to read — automatic, Windows, or a
+specific WSL distro.
+
+**Weekly pace** compares the weekly percentage with where an even spread would
+put it by now, given how much of the window has elapsed before its reset. Within
+5 points either way counts as *within expected*; more is *above expected* (you
+are spending credit faster than the week allows) and less is *below expected*
+(credit to spare). Under it sit the usage projected for the reset at the current
+burn rate, the credit available per day to spread what is left evenly, today's
+usage and the daily average against the even daily share (~14%), a bar per day
+for the last seven days with that share drawn as a dashed line, and the number
+of sessions in the last week, including those that peaked at 90% or more.
 
 The trend chart is readable point by point: percentages run down its side,
 timestamps run underneath, and hovering (or focusing it and using the arrow

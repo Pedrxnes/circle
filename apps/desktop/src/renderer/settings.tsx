@@ -20,6 +20,7 @@ import { Ring } from "./Ring";
 import { Row, Section, Segmented, Slider, Toggle } from "./controls";
 import { formatExhaustion, formatPeriodLabel, formatReset, formatUpdated, metricHint, metricLabel } from "./format";
 import { Sparkline } from "./Sparkline";
+import { WeeklyPace } from "./WeeklyPace";
 import "./settings.css";
 
 const EMPTY_USAGE: Usage = { state: "no-credentials", windows: [], accountEmail: null, updatedAt: null, error: null, sourceLabel: null };
@@ -40,7 +41,8 @@ function App(): JSX.Element {
     rangeFrom: new Date().toISOString(),
     rangeTo: new Date().toISOString(),
     hasOlder: false,
-    hasNewer: false
+    hasNewer: false,
+    weekly: { days: [], dailyAverage: null, changeVsPreviousWeek: null, sessionsStarted: 0, sessionsNearLimit: 0 }
   });
   const [historyView, setHistoryView] = useState<HistoryView>("week");
   const [historyOffset, setHistoryOffset] = useState(0);
@@ -148,6 +150,12 @@ function App(): JSX.Element {
               )}
               <p className="muted">{formatUpdated(usage.updatedAt, settings.language)}</p>
             </Section>
+
+            {usage.state === "ok" && (
+              <Section title={text.weeklyPaceTitle} hint={text.weeklyPaceHint}>
+                <WeeklyPace usage={usage} history={history} language={settings.language} />
+              </Section>
+            )}
 
             <Section
               title={text.last7Days}

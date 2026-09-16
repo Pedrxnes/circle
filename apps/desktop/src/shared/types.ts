@@ -99,6 +99,27 @@ export interface HistorySummary {
   /** Whether stored samples reach further back than this period, or forward of it. */
   hasOlder: boolean;
   hasNewer: boolean;
+  /** Weekly-window activity over the last seven days, whatever period is being browsed. */
+  weekly: WeeklyActivity;
+}
+
+export interface DailyUsage {
+  /** Local midnight that opens the day, as an ISO timestamp. */
+  day: string;
+  /** Weekly-window percentage points used that day, or null when Circle took no reading. */
+  points: number | null;
+}
+
+export interface WeeklyActivity {
+  /** The last seven local calendar days, oldest first, ending with today. */
+  days: DailyUsage[];
+  /** Mean points per day over the complete days that have readings, or null with none. */
+  dailyAverage: number | null;
+  /** Relative change in points used over the last 7 days against the 7 before, or null without both on record. */
+  changeVsPreviousWeek: number | null;
+  /** Session windows opened in the last 7 days, and how many of them peaked near the cap. */
+  sessionsStarted: number;
+  sessionsNearLimit: number;
 }
 
 export interface ExhaustionWarning {
@@ -160,6 +181,8 @@ export const PRESENCE_CACHE_TTL_MS = 30_000;
 export const HISTORY_RETENTION_DAYS = 90;
 /** ~90 days at the default 5-minute refresh interval; a faster interval trims older days first. */
 export const HISTORY_MAX_SAMPLES = 26_000;
+/** A session whose peak reached this counts as having run close to its cap. */
+export const SESSION_NEAR_LIMIT_PERCENT = 90;
 
 export const DEFAULT_ACCENT = "#d97757";
 
