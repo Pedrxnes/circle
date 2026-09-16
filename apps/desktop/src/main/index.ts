@@ -142,6 +142,7 @@ function createSettingsWindow(): BrowserWindow {
     }
   });
   window.removeMenu();
+  setTaskbarDetails(window);
   void window.loadFile(join(__dirname, "../renderer/settings.html"));
   window.once("ready-to-show", () => window.show());
   window.on("closed", () => {
@@ -165,9 +166,23 @@ function showSettings(): void {
 }
 
 function appIconPath(): string {
-  return app.isPackaged
-    ? join(process.resourcesPath, "resources", "icon.png")
-    : join(app.getAppPath(), "resources", "icon.png");
+  // electron-builder packs resources/icon.png into app.asar, which getAppPath() points at.
+  return join(app.getAppPath(), "resources", "icon.png");
+}
+
+/**
+ * Windows draws the taskbar button from whatever the AppUserModelID resolves to, not from the
+ * window icon. With no installed Start Menu shortcut (`npm run dev`) that is electron.exe, so
+ * give the window its own relaunch icon. The shell needs a real .ico file, not a path in asar.
+ */
+function setTaskbarDetails(window: BrowserWindow): void {
+  if (process.platform !== "win32") return;
+  window.setAppDetails({
+    appId: APP_ID,
+    appIconPath: app.isPackaged ? process.execPath : join(app.getAppPath(), "resources", "icon.ico"),
+    relaunchCommand: app.isPackaged ? `"${process.execPath}"` : `"${process.execPath}" "${app.getAppPath()}"`,
+    relaunchDisplayName: "Circle"
+  });
 }
 
 // ------------------------------------------------------------------- tray
